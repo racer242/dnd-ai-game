@@ -459,13 +459,6 @@ def play_wave(query: Optional[str] = None):
 
     print(f"✓ Станция: {station_id}")
 
-    # Запускаем слушатель клавиатуры для выхода по x
-    def _on_exit():
-        stop_playback()
-        os._exit(0)
-
-    start_keyboard_listener(_on_exit)
-
     # Бесконечный цикл воспроизведения
     track_index = 0
     while not _exit_requested:
@@ -561,6 +554,12 @@ def play_wave(query: Optional[str] = None):
     print("  └ Завершение воспроизведения волны.")
 
 
+def _on_exit_global():
+    """Callback для глобального выхода по Ctrl+X."""
+    stop_playback()
+    os._exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Управление Яндекс Музыкой из консоли"
@@ -593,6 +592,9 @@ def main():
     elif actions > 1:
         print("❌ Укажи только одно действие.")
         sys.exit(1)
+
+    # Запускаем глобальный слушатель Ctrl+X для всех режимов
+    start_keyboard_listener(_on_exit_global)
 
     if args.stop:
         stop_playback()

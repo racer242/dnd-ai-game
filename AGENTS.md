@@ -3372,3 +3372,7 @@ When player gives first command, you're ready to:
 ---
 
 **Await player command.**
+
+# DEV MANUAL
+
+Always use a semicolon ; instead of && to chain commands in PowerShell. View differences without paging: git --no-pager diff
