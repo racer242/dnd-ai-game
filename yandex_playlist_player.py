@@ -239,14 +239,20 @@ def play_liked_tracks():
 
 
 def play_tracks(tracks_source, client: Client):
-    """Запускает последовательное воспроизведение треков из плейлиста."""
+    """Запускает последовательное воспроизведение треков из плейлиста (в перемешанном порядке)."""
+    import random
+
     if hasattr(tracks_source, 'tracks'):
         tracks_data = tracks_source.tracks
     else:
         tracks_data = tracks_source
+
+    # Перемешиваем треки для режима shuffle
+    random.shuffle(tracks_data)
+
     total = len(tracks_data)
     print(f"\n{'='*60}")
-    print(f"  Начинаю воспроизведение {total} треков")
+    print(f"  Начинаю воспроизведение {total} треков (в перемешанном порядке)")
     print(f"{'='*60}\n")
 
     for idx, track_data in enumerate(tracks_data, 1):
