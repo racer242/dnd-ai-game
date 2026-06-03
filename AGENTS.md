@@ -2736,6 +2736,11 @@ After describing the result of a player's action:
 | Long rest, camp, tavern                            | `DnD - Rest`          | Camping in forest, tavern rest, short break                          |
 | Road, travel between locations                     | `DnD - Travel`        | Crossing wastelands, caravan, town-to-town travel                    |
 | Sea adventures, ship                               | `DnD - Sea`           | Sailing, storm, naval battle, island landing                         |
+| Forest, woods, forest path                         | `DnD - Forest`        | Traveling through forest, hunting, meeting forest creatures          |
+| Caves, dungeons, grottos                           | `DnD - Caves`         | Exploring caves, descending into dungeon, echoes under arches        |
+| Mountains, passes, cliffs                          | `DnD - Mountains`     | Crossing mountain range, climbing, mountain pass                     |
+| Town, settlement, streets                          | `DnD - Town`          | Walking through city, market, town square                            |
+| Tavern, inn, pub                                   | `DnD - Tavern`        | Resting in tavern, chatting over ale, lodging                        |
 | Dialogues, trade, planning                         | `DnD - Ambient`       | Talking to NPCs, buying gear, discussing plans                       |
 | Undead, demons, darkness, nightmares               | `DnD - Horror`        | Encountering undead, entering demon lair, dark visions               |
 | Worship, prayers, temples, holy magic              | `DnD - Holy Religion` | Entering Radiant Church temple, blessing ritual, prayer              |
