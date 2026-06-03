@@ -2692,12 +2692,13 @@ You manage background music through the `yandex_remote.py` script. Music creates
 
 #### Algorithm at session start
 
-1. Determine the initial scene atmosphere (exploration, combat, rest, etc.)
-2. Launch the appropriate playlist via system command:
+1. **ALWAYS launch the main campaign theme first:**
    ```
-   python yandex_remote.py --playlist "DnD - [name]"
+   python yandex_remote.py --playlist "DnD - Theme"
    ```
-3. Save current playlist in session state file
+2. The theme plays during opening narration and initial scene setup
+3. After the scene stabilizes, assess the situation and switch to appropriate playlist if needed
+4. Save current playlist in session state file
 
 #### Algorithm on each turn
 
@@ -2742,6 +2743,7 @@ After describing the result of a player's action:
 | Defeat, catastrophe, destruction, plague, epidemic | `DnD - Tragedy`       | City struck by plague, earthquake aftermath, battlefield after fight |
 | Ball, high society, feast, theater, aristocracy    | `DnD - Ball`          | Palace reception, duke's ball, theatrical performance                |
 | Comic, silly situation                             | `DnD - Comic`         | Absurd events, clowning, comical failures                            |
+| Main campaign theme                                | `DnD - Theme`         | Default playlist at session start                                    |
 
 #### Important rules
 
