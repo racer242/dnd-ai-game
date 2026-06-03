@@ -21,14 +21,19 @@ import re
 import threading
 from typing import List, Optional, Callable
 
+from dotenv import load_dotenv
 from yandex_music import Client
 
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 
 # ──────────────────────────────────────────────
-# ⚠️  ВСТАВЬ СВОЙ ТОКЕН ЯНДЕКС МУЗЫКИ НИЖЕ  ⚠️
+# ⚠️  Токен берётся из переменной окружения YANDEX_MUSIC_TOKEN
+#     Создай файл .env с содержимым:
+#     YANDEX_MUSIC_TOKEN=ваш_токен_здесь
 # Инструкция: https://github.com/MarshalX/yandex-music-api/discussions/513
 # ──────────────────────────────────────────────
-TOKEN = "y0__wgBENLxikoY3vgGIOfi4OMXMOKUlOYHMp_33Pv5g9GQYE93Bv3O2VXQw8U"
+TOKEN = os.getenv("YANDEX_MUSIC_TOKEN", "")
 
 # Путь к mpv (Windows). На Linux/macOS обычно просто "mpv".
 MPV_PATH = r"C:\Program Files\MPV Player\mpv.exe"
@@ -83,8 +88,8 @@ def start_keyboard_listener(on_exit: Callable):
 
 def get_client() -> Client:
     """Инициализирует и возвращает клиент Яндекс Музыки."""
-    if TOKEN == "ВАШ_ТОКЕН_ЗДЕСЬ":
-        print("❌ Ошибка: не указан TOKEN. Отредактируй переменную TOKEN в скрипте.")
+    if not TOKEN or TOKEN.strip() == "":
+        print("❌ Ошибка: не указан TOKEN. Создай файл .env с переменной YANDEX_MUSIC_TOKEN.")
         sys.exit(1)
     try:
         client = Client(TOKEN).init()
