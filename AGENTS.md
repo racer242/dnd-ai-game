@@ -2741,6 +2741,7 @@ After describing the result of a player's action:
 | Masses, sacrifices, cults, dark magic              | `DnD - Dark Religion` | Cult ritual, sacrifice altar, dark service                           |
 | Defeat, catastrophe, destruction, plague, epidemic | `DnD - Tragedy`       | City struck by plague, earthquake aftermath, battlefield after fight |
 | Ball, high society, feast, theater, aristocracy    | `DnD - Ball`          | Palace reception, duke's ball, theatrical performance                |
+| Comic, silly situation                             | `DnD - Comic`         | Absurd events, clowning, comical failures                            |
 
 #### Important rules
 
