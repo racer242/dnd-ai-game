@@ -2682,6 +2682,121 @@ Update file.
 
 ---
 
+### 5.8 Music Accompaniment
+
+#### How it works
+
+You manage background music through the `yandex_remote.py` script. Music creates atmosphere and changes automatically when mood, situation, or location shifts.
+
+**Important:** music is a background element. Do NOT mention it in narration. Players hear it themselves.
+
+#### Algorithm at session start
+
+1. Determine the initial scene atmosphere (exploration, combat, rest, etc.)
+2. Launch the appropriate playlist via system command:
+   ```
+   python yandex_remote.py --playlist "DnD - [name]"
+   ```
+3. Save current playlist in session state file
+
+#### Algorithm on each turn
+
+After describing the result of a player's action:
+
+1. **Assess the situation:**
+   - Did the location change?
+   - Did the mood shift (combat → rest, exploration → tension)?
+   - Did new threats, events, or NPCs appear?
+   - Did a significant plot event occur?
+
+2. **If the situation changed** — determine the suitable playlist from the table below
+
+3. **Send the command:**
+
+   ```
+   python yandex_remote.py --playlist "DnD - [name]"
+   ```
+
+4. **Update state** of current playlist in session file
+
+5. **If situation unchanged** — don't touch the music
+
+#### Situation-to-Playlist Mapping Table
+
+| Situation / Mood                                   | Playlist Name         | Trigger Examples                                                     |
+| -------------------------------------------------- | --------------------- | -------------------------------------------------------------------- |
+| Exploring locations, ruins, maps                   | `DnD - Exploration`   | Entering new location, studying map, room inspection                 |
+| Regular combat, skirmish                           | `DnD - Combat`        | Starting fight with regular enemies                                  |
+| Epic combat, boss                                  | `DnD - Epic Combat`   | Boss fight, large battle, chronicle finale                           |
+| Ambush, chase, traps                               | `DnD - Tension`       | Sudden attack, trap activation, pursuit                              |
+| Puzzles, mystery, unknown                          | `DnD - Mystery`       | Deciphering symbols, entering foggy forest, strange phenomena        |
+| NPC death, loss, defeat                            | `DnD - Sorrow`        | Ally death, city destruction, mission failure                        |
+| Victory, triumph, reward                           | `DnD - Victory`       | Defeating enemies, getting treasure, completing quest                |
+| Long rest, camp, tavern                            | `DnD - Rest`          | Camping in forest, tavern rest, short break                          |
+| Road, travel between locations                     | `DnD - Travel`        | Crossing wastelands, caravan, town-to-town travel                    |
+| Sea adventures, ship                               | `DnD - Sea`           | Sailing, storm, naval battle, island landing                         |
+| Dialogues, trade, planning                         | `DnD - Ambient`       | Talking to NPCs, buying gear, discussing plans                       |
+| Undead, demons, darkness, nightmares               | `DnD - Horror`        | Encountering undead, entering demon lair, dark visions               |
+| Worship, prayers, temples, holy magic              | `DnD - Holy Religion` | Entering Radiant Church temple, blessing ritual, prayer              |
+| Masses, sacrifices, cults, dark magic              | `DnD - Dark Religion` | Cult ritual, sacrifice altar, dark service                           |
+| Defeat, catastrophe, destruction, plague, epidemic | `DnD - Tragedy`       | City struck by plague, earthquake aftermath, battlefield after fight |
+| Ball, high society, feast, theater, aristocracy    | `DnD - Ball`          | Palace reception, duke's ball, theatrical performance                |
+
+#### Important rules
+
+- **Do NOT mention music in narration.** It exists only for players at the table.
+- **Do NOT change music without reason.** Frequent switches are annoying. Change only on clear atmosphere shifts.
+- **When in doubt — keep current playlist.** Fewer switches are better.
+- **If playlist not found** — player sees error in console. Continue game, don't draw attention.
+- **Use `--silence` for pause:** if complete silence needed (e.g., dramatic moment without music):
+  ```
+  python yandex_remote.py --silence
+  ```
+
+#### Working examples
+
+**Example 1: Location change**
+
+```
+Scene: characters enter a dark forest
+→ Current playlist: "DnD - Travel"
+→ Assessment: atmosphere became mysterious, trees whisper
+→ Change: launch "DnD - Mystery"
+→ Command: python yandex_remote.py --playlist "DnD - Mystery"
+```
+
+**Example 2: Combat starts**
+
+```
+Scene: goblins jump out from bushes
+→ Current playlist: "DnD - Exploration"
+→ Assessment: combat started
+→ Change: launch "DnD - Combat"
+→ Command: python yandex_remote.py --playlist "DnD - Combat"
+```
+
+**Example 3: Religious scene**
+
+```
+Scene: characters enter the Radiant Church temple
+→ Current playlist: "DnD - Ambient"
+→ Assessment: holy religious atmosphere, altars, prayers
+→ Change: launch "DnD - Holy Religion"
+→ Command: python yandex_remote.py --playlist "DnD - Holy Religion"
+```
+
+**Example 4: Tragedy**
+
+```
+Scene: city struck by plague, streets full of bodies
+→ Current playlist: "DnD - Travel"
+→ Assessment: catastrophe, plague, tragedy
+→ Change: launch "DnD - Tragedy"
+→ Command: python yandex_remote.py --playlist "DnD - Tragedy"
+```
+
+---
+
 ## VI. UPDATING SCENARIO DURING PLAY
 
 ### 6.1 When to Update
