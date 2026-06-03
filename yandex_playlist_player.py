@@ -43,6 +43,29 @@ MPV_PATH = r"C:\Program Files\MPV Player\mpv.exe"
 # ──────────────────────────────────────────────
 _exit_requested = False
 
+# Файл для межпроцессной коммуникации (команды от yandex_remote.py)
+_COMMAND_FILE = ".command_queue"
+
+# Глобальная переменная для хранения текущей команды
+_current_command = None
+
+
+def check_command_file() -> Optional[str]:
+    """Проверяет файл команд и возвращает команду, если есть."""
+    global _current_command
+    if os.path.exists(_COMMAND_FILE):
+        try:
+            with open(_COMMAND_FILE, "r", encoding="utf-8") as f:
+                cmd = f.read().strip()
+            # Удаляем файл после прочтения
+            os.remove(_COMMAND_FILE)
+            _current_command = cmd
+            print(f"\n📩 Получена команда: {cmd}")
+            return cmd
+        except Exception as e:
+            print(f"⚠️  Ошибка чтения файла команд: {e}")
+    return None
+
 
 def start_keyboard_listener(on_exit: Callable):
     """Запускает фоновый поток, слушающий Ctrl+X для выхода."""
@@ -291,31 +314,92 @@ def play_tracks(tracks_source, client: Client):
         play_track(track_url, title, artist_str)
 
         if idx < total:
-            print(f"  └ Ожидание завершения трека (можно пропустить: Ctrl+C)...")
+            print(f"  └ Ожидание завершения трека (Ctrl+C — пропустить)...")
+            cmd = _wait_for_track_or_command()
+            if cmd:
+                # Получена команда из файла — обрабатываем
+                _handle_remote_command(cmd, client)
+                if _exit_requested:
+                    break
+                continue
             try:
-                while True:
-                    if sys.platform == "win32":
-                        result = subprocess.run(
-                            ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
-                            capture_output=True, text=True, timeout=5
-                        )
-                        if "mpv.exe" not in result.stdout:
-                            break
-                    else:
-                        result = subprocess.run(
-                            ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
-                        )
-                        if not result.stdout.strip():
-                            break
-                    time.sleep(1)
+                pass  # Цикл уже завершился (трек доиграл)
             except KeyboardInterrupt:
                 print("\n  ⏭ Пропускаю трек...")
                 stop_playback()
                 continue
 
-    print(f"\n{'='*60}")
-    print("  ✅ Воспроизведение плейлиста завершено")
-    print(f"{'='*60}")
+
+def _wait_for_track_or_command() -> Optional[str]:
+    """Ждёт завершения трека или появления команды. Возвращает команду или None."""
+    while True:
+        cmd = check_command_file()
+        if cmd:
+            return cmd
+        if sys.platform == "win32":
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
+                capture_output=True, text=True, timeout=5
+            )
+            if "mpv.exe" not in result.stdout:
+                return None
+        else:
+            result = subprocess.run(
+                ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
+            )
+            if not result.stdout.strip():
+                return None
+        time.sleep(0.5)
+
+
+def _handle_remote_command(cmd: str, client: Client):
+    """Обрабатывает команду от yandex_remote.py."""
+    global _exit_requested
+    
+    print(f"\n📩 Обрабатываю команду: {cmd}")
+    
+    if cmd == "--stop":
+        print("  └ Остановка и выход...")
+        stop_playback()
+        _exit_requested = True
+        os._exit(0)
+    
+    elif cmd == "--silence":
+        print("  └ Тишина (остановка воспроизведения)...")
+        stop_playback()
+        # Не выходим, продолжаем ждать команд
+    
+    elif cmd.startswith("--playlist"):
+        # Извлекаем название плейлиста
+        parts = cmd.split('"')
+        if len(parts) >= 2:
+            playlist_name = parts[1]
+        else:
+            playlist_name = cmd.replace("--playlist", "").strip()
+        
+        print(f"  └ Переключение на плейлист: {playlist_name}")
+        stop_playback()
+        play_playlist_by_name(playlist_name)
+    
+    elif cmd.startswith("--wave"):
+        # Извлекаем тему волны
+        parts = cmd.split('"')
+        if len(parts) >= 2:
+            wave_theme = parts[1]
+        else:
+            wave_theme = cmd.replace("--wave", "").strip() or None
+        
+        print(f"  └ Переключение на волну: {wave_theme or 'персональная'}")
+        stop_playback()
+        play_wave(wave_theme)
+    
+    elif cmd == "--liked":
+        print("  └ Переключение на 'Мне нравится'")
+        stop_playback()
+        play_liked_tracks()
+    
+    else:
+        print(f"  ⚠️  Неизвестная команда: {cmd}")
 
 
 def find_station_id_by_query(query: str, client: Client) -> str:
@@ -526,43 +610,48 @@ def play_wave(query: Optional[str] = None):
                 play_track(track_url, title, artist_str)
 
                 print(f"  └ Ожидание завершения (Ctrl+C — пропустить, Ctrl+X — выйти)...")
-                try:
-                    while not _exit_requested:
-                        if sys.platform == "win32":
-                            result = subprocess.run(
-                                ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
-                                capture_output=True, text=True, timeout=5
-                            )
-                            if "mpv.exe" not in result.stdout:
-                                break
-                        else:
-                            result = subprocess.run(
-                                ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
-                            )
-                            if not result.stdout.strip():
-                                break
-                        time.sleep(1)
-                except KeyboardInterrupt:
-                    print("\n  ⏭ Пропускаю трек...")
-                    stop_playback()
-                    continue
-
-                track_index += 1
-
+                cmd = _wait_for_wave_command()
+                if cmd:
+                    # Получена команду из файла — обрабатываем
+                    _handle_remote_command(cmd, client)
+                    if _exit_requested:
+                        break
+                    # После обработки команды перезапускаем внешний цикл для новых треков
+                    track_index += 1
+                    break
             except KeyboardInterrupt:
                 print("\n  ⏭ Пропускаю трек...")
                 stop_playback()
                 continue
-            except Exception as e:
-                if _exit_requested:
-                    break
-                print(f"  ⚠️  Ошибка обработки трека: {e}")
-                continue
 
-        if not _exit_requested:
-            print("  └ Загружаю следующую порцию треков...")
+        if _exit_requested:
+            break
 
     print("  └ Завершение воспроизведения волны.")
+
+
+def _wait_for_wave_command() -> Optional[str]:
+    """Ждёт завершения трека или появления команды в режиме wave. Возвращает команду или None."""
+    while True:
+        cmd = check_command_file()
+        if cmd:
+            return cmd
+        if _exit_requested:
+            return None
+        if sys.platform == "win32":
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
+                capture_output=True, text=True, timeout=5
+            )
+            if "mpv.exe" not in result.stdout:
+                return None
+        else:
+            result = subprocess.run(
+                ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
+            )
+            if not result.stdout.strip():
+                return None
+        time.sleep(0.5)
 
 
 def _on_exit_global():
