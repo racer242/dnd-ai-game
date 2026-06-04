@@ -2864,29 +2864,56 @@ Also requires mpv player installed (same as for music).
 
 #### ⚠️ Algorithm on each turn (VOICE THE FULL TEXT!)
 
-**CRITICALLY IMPORTANT: Before describing situation/action result you MUST send THE ENTIRE Master description text for voice synthesis!**
+**CRITICALLY IMPORTANT: The order of actions is STRICTLY defined!**
 
-1. **⛔ VOICE THE FULL DESCRIPTION text!**
+**Correct order:**
 
-   Do NOT cut the text! Do NOT voice only the first paragraph! The entire text must be sent for voice synthesis!
+1. **⛔ FIRST generate the FULL Master narration text**
 
-2. **Send the ENTIRE text for voice synthesis:**
+   Prepare ALL text that needs to be voiced. This is ALL Master narration — situation description, action results, NPC speech, sounds, smells, etc.
+
+2. **⛔ THEN send the ENTIRE text for voice synthesis in ONE call:**
 
    ```
-   python tts_remote.py --text "FULL description text here..."
+   python tts_remote.py --text "FULL description text from start to end..."
    ```
 
    **The system will automatically split long text into parts and play them sequentially!**
 
-3. **Immediately output text to chat** — don't wait for generation or playback to finish
+3. **AFTER sending for voice — output text to chat**
 
-4. **Prompt player for action** — player sees text and can act even if voice is still playing
+   Only after the voice command is sent, output the same text to chat for the player.
 
-5. **If player acts before voice finishes** — new voice output automatically interrupts previous one
+4. **Output NON-voiced text AFTER voiced text**
+
+   Text that is NOT Master narration (system messages, questions to player, technical instructions) — output as a separate block AFTER the main text.
+
+**Example of correct order:**
+
+```
+# STEP 1: Send ALL Master text for voice
+python tts_remote.py --text "You enter the dark tavern. The air is stuffy, smelling of ale and sweat. Behind the counter, the bartender wipes mugs. Two men play dice in the corner."
+
+# STEP 2: Output the same text to chat
+═══════════════════════════════════
+SESSION 1 STARTED
+═══════════════════════════════════
+
+You enter the dark tavern. The air is stuffy, smelling of ale and sweat.
+Behind the counter, the bartender wipes mugs. Two men play dice in the corner.
+
+# STEP 3: Output NON-voiced text (question to player)
+Thorin, what do you do?
+```
+
+**⛔ FORBIDDEN:**
+
+- Output text to chat BEFORE sending for voice
+- Send only part of the text for voice
+- Mix voiced and NON-voiced text in one block
 
 #### Important rules
 
-- **⛔ FORBIDDEN to cut the text!** Send the entire description text for voice synthesis!
 - **Voice does NOT block gameplay.** Text appears in chat immediately.
 - **Each new voice output interrupts the previous one.** No need to wait for completion.
 - **Voice only the Master's text.** Player actions and dialogue are not voiced.
