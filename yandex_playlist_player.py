@@ -67,6 +67,9 @@ MPV_PATH = _music_config.get("player_path", r"C:\Program Files\MPV Player\mpv.ex
 # Громкость (из конфига или значение по умолчанию)
 MUSIC_VOLUME = _music_config.get("volume", "+0dB")
 
+# Глобальная переменная для хранения процесса mpv музыкального плеера
+_music_mpv_process = None
+
 # ──────────────────────────────────────────────
 # Глобальный флаг для выхода из воспроизведения
 # ──────────────────────────────────────────────
@@ -153,34 +156,19 @@ def get_client() -> Client:
 
 
 def stop_playback():
-    """Останавливает все запущенные процессы mpv."""
-    stopped = 0
-    try:
-        if sys.platform == "win32":
-            result = subprocess.run(
-                ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
-                capture_output=True, text=True, timeout=5
-            )
-            if "mpv.exe" in result.stdout:
-                subprocess.run(["taskkill", "/F", "/IM", "mpv.exe"],
-                               capture_output=True, timeout=5)
-                stopped = 1
-        else:
-            result = subprocess.run(
-                ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
-            )
-            if result.stdout.strip():
-                for pid in result.stdout.strip().splitlines():
-                    os.kill(int(pid), signal.SIGTERM)
-                    stopped += 1
-    except Exception as e:
-        print(f"⚠️  Ошибка при остановке плеера: {e}")
-        return
-
-    if stopped:
-        print("⏹ Воспроизведение остановлено.")
-    else:
-        print("ℹ️  Активных процессов mpv не найдено.")
+    """Останавливает ТОЛЬКО музыкальный mpv-процесс, не трогая TTS."""
+    global _music_mpv_process
+    
+    if _music_mpv_process and _music_mpv_process.poll() is None:
+        # Процесс ещё жив — убиваем только его
+        try:
+            _music_mpv_process.terminate()
+            _music_mpv_process.wait(timeout=3)
+            print("⏹ Музыкальное воспроизведение остановлено.")
+        except Exception as e:
+            print(f"⚠️  Ошибка при остановке музыки: {e}")
+        finally:
+            _music_mpv_process = None
 
 
 def get_track_url(track, client: Client) -> Optional[str]:
@@ -214,10 +202,12 @@ def get_track_url(track, client: Client) -> Optional[str]:
 
 
 def play_track(url: str, track_title: str, artist_name: str):
-    """Запускает mpv для воспроизведения трека по прямой ссылке."""
+    """Запускает mpv для воспроизведения трека по прямой ссылке. Сохраняет ссылку на процесс."""
+    global _music_mpv_process
     print(f"  ▶ Сейчас играет: {artist_name} — {track_title}")
     try:
-        subprocess.Popen(
+        # Сохраняем ссылку на процесс чтобы можно было остановить только музыку
+        _music_mpv_process = subprocess.Popen(
             [MPV_PATH, "--no-terminal", "--quiet", f"--volume={MUSIC_VOLUME}", url],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
