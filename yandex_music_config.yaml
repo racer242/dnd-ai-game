@@ -7,4 +7,4 @@ player_path: "C:\\Program Files\\MPV Player\\mpv.exe"
 
 # Volume adjustment for music (in dB, mpv format)
 # Examples: "-3dB" (quieter), "+0dB" (normal), "+3dB" (louder)
-volume: "-5dB"
+volume: 50

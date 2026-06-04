@@ -34,6 +34,9 @@ explore_*.py
 # TTS temporary audio files
 temp_tts/
 
+# Music cache (downloaded tracks)
+temp_music/
+
 # TTS temporary text input
 .tts_text_input
 

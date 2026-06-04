@@ -201,24 +201,54 @@ def get_track_url(track, client: Client) -> Optional[str]:
         return None
 
 
-def play_track(url: str, track_title: str, artist_name: str):
-    """Запускает mpv для воспроизведения трека по прямой ссылке. Сохраняет ссылку на процесс."""
+# Временная директория для кэширования треков
+_TEMP_AUDIO_DIR = os.path.join(SCRIPT_DIR, "temp_music")
+os.makedirs(_TEMP_AUDIO_DIR, exist_ok=True)
+
+
+def download_and_play(track, track_title: str, artist_name: str, client: Client):
+    """Скачивает трек во временный файл (если нужно) и воспроизводит его."""
     global _music_mpv_process
+    
     print(f"  ▶ Сейчас играет: {artist_name} — {track_title}")
+    
     try:
-        # Сохраняем ссылку на процесс чтобы можно было остановить только музыку
+        # Проверяем кэш - если трек уже скачан, используем его
+        temp_file = os.path.join(_TEMP_AUDIO_DIR, f"{track_title.replace('/', '_')}.mp3")
+        
+        if os.path.exists(temp_file) and os.path.getsize(temp_file) > 0:
+            # Трек уже в кэше
+            file_size = os.path.getsize(temp_file)
+            print(f"  └ Из кэша: {file_size // 1024} KB")
+        else:
+            # Скачиваем трек
+            track.download(temp_file)
+            
+            if not os.path.exists(temp_file) or os.path.getsize(temp_file) == 0:
+                print(f"  ⚠️  Не удалось скачать трек")
+                return
+            
+            file_size = os.path.getsize(temp_file)
+            print(f"  └ Скачано: {file_size // 1024} KB")
+        
+        # Воспроизводим локальный файл с настройкой громкости
+        # Громкость в mpv указывается в процентах (0-100)
         _music_mpv_process = subprocess.Popen(
-            [MPV_PATH, "--no-terminal", "--quiet", f"--volume={MUSIC_VOLUME}", url],
+            [MPV_PATH, f"--volume={MUSIC_VOLUME}", temp_file],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-    except FileNotFoundError:
-        print(f"  ❌ mpv не найден по пути: {MPV_PATH}")
-        print("  Установи mpv или укажи правильный путь в MPV_PATH.")
-        sys.exit(1)
+        
     except Exception as e:
-        print(f"  ❌ Ошибка запуска mpv: {e}")
-        sys.exit(1)
+        print(f"  ❌ Ошибка: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def play_track(url: str, track_title: str, artist_name: str):
+    """Запускает mpv для воспроизведения трека. (Устаревший метод - используется download_and_play)"""
+    global _music_mpv_process
+    print(f"  ▶ Сейчас играет: {artist_name} — {track_title}")
 
 
 def play_playlist_by_name(name: str):
@@ -323,14 +353,10 @@ def play_tracks(tracks_source, client: Client):
         print(f"[{idx}/{total}] {artist_str} — {title}")
         print(f"  └ Загрузка информации...")
 
-        track_url = get_track_url(track, client)
-        if not track_url:
-            continue
-
         stop_playback()
         time.sleep(0.3)
 
-        play_track(track_url, title, artist_str)
+        download_and_play(track, title, artist_str, client)
 
         if idx < total:
             print(f"  └ Ожидание завершения трека (Ctrl+C — пропустить)...")
@@ -634,17 +660,13 @@ def play_wave(query: Optional[str] = None):
                 print(f"\n[{track_index}] {artist_str} — {title}")
                 print(f"  └ Загрузка информации...")
 
-                track_url = get_track_url(track, client)
-                if not track_url:
-                    continue
-
                 stop_playback()
                 time.sleep(0.3)
 
                 if _exit_requested:
                     break
 
-                play_track(track_url, title, artist_str)
+                download_and_play(track, title, artist_str, client)
 
                 print(f"  └ Ожидание завершения (Ctrl+C — пропустить, Ctrl+X — выйти)...")
                 cmd = _wait_for_wave_command()
