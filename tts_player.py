@@ -60,33 +60,24 @@ def ensure_output_dir(output_dir: str):
     return dir_path
 
 
-def stop_playback():
-    """Останавливает все запущенные процессы mpv для TTS."""
-    stopped = 0
-    try:
-        if sys.platform == "win32":
-            result = subprocess.run(
-                ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
-                capture_output=True, text=True, timeout=5
-            )
-            if "mpv.exe" in result.stdout:
-                subprocess.run(["taskkill", "/F", "/IM", "mpv.exe"],
-                               capture_output=True, timeout=5)
-                stopped = 1
-        else:
-            result = subprocess.run(
-                ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
-            )
-            if result.stdout.strip():
-                for pid in result.stdout.strip().splitlines():
-                    os.kill(int(pid), signal.SIGTERM)
-                    stopped += 1
-    except Exception as e:
-        print(f"⚠️  Ошибка при остановке плеера: {e}")
-        return
+# Глобальная переменная для хранения PID текущего TTS-плеера
+_tts_mpv_process = None
 
-    if stopped:
-        print("⏹ TTS воспроизведение остановлено.")
+
+def stop_playback():
+    """Останавливает ТОЛЬКО TTS воспроизведение, не трогая музыкальный плеер."""
+    global _tts_mpv_process
+    
+    if _tts_mpv_process and _tts_mpv_process.poll() is None:
+        # Процесс ещё жив — убиваем только его
+        try:
+            _tts_mpv_process.terminate()
+            _tts_mpv_process.wait(timeout=3)
+            print("⏹ TTS воспроизведение остановлено.")
+        except Exception as e:
+            print(f"⚠️  Ошибка при остановке TTS: {e}")
+        finally:
+            _tts_mpv_process = None
 
 
 def generate_speech(text: str, voice: str, output_path: str, 
@@ -131,14 +122,17 @@ def generate_speech(text: str, voice: str, output_path: str,
 
 
 def play_audio(audio_path: str, player_path: str):
-    """Запускает воспроизведение аудио через mpv."""
+    """Запускает воспроизведение аудио через mpv. Сохраняет ссылку на процесс."""
+    global _tts_mpv_process
+    
     try:
         # Проверяем существование файла
         if not os.path.exists(audio_path):
             print(f"❌ Аудиофайл не найден: {audio_path}")
             return False
         
-        subprocess.Popen(
+        # Сохраняем ссылку на процесс чтобы можно было остановить только TTS
+        _tts_mpv_process = subprocess.Popen(
             [player_path, "--no-terminal", "--quiet", audio_path],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
@@ -293,24 +287,24 @@ def process_tts_command(cmd: str, config: dict, output_dir: str) -> bool:
 
 
 def wait_for_playback_end(timeout: float = 60):
-    """Ждёт окончания воспроизведения mpv."""
+    """Ждёт окончания воспроизведения ТОЛЬКО TTS-процесса, не трогая музыку."""
+    global _tts_mpv_process
+    
     start_time = time.time()
     while time.time() - start_time < timeout:
         if _exit_requested:
             break
-        if sys.platform == "win32":
-            result = subprocess.run(
-                ["tasklist", "/FI", "IMAGENAME eq mpv.exe", "/FO", "CSV"],
-                capture_output=True, text=True, timeout=5
-            )
-            if "mpv.exe" not in result.stdout:
-                return
-        else:
-            result = subprocess.run(
-                ["pgrep", "-x", "mpv"], capture_output=True, text=True, timeout=5
-            )
-            if not result.stdout.strip():
-                return
+        
+        # Проверяем только наш TTS-процесс
+        if _tts_mpv_process is None:
+            return
+        
+        # poll() None если процесс ещё жив
+        if _tts_mpv_process.poll() is not None:
+            # Процесс завершился
+            _tts_mpv_process = None
+            return
+        
         time.sleep(0.3)
 
 
