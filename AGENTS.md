@@ -3525,19 +3525,19 @@ Decide how to use.
 **Examples of player commands:**
 
 ```
-$$$ Create main plot line
-$$$ Create character
-$$$ Start game session
-$$$ Show party state
-$$$ I edited character file
+$$$ Создай общую сюжетную линию
+$$$ Создай персонажа
+$$$ Начни игровую сессию
+$$$ Покажи состояние партии
+$$$ Я отредактировал файл персонажа
 ```
 
 **Examples of game text (NOT commands):**
 
 ```
-I examine the room for traps
-Thorin attacks the goblin with his sword
-Let's rest here
+Я осматриваю комнату на предмет ловушек
+Торин атакует гоблина мечом
+Давайте отдохнём здесь
 ```
 
 **How to process:**
@@ -3742,4 +3742,4 @@ When player gives first command, you're ready to:
 
 # DEV MANUAL
 
-Always use a semicolon ; instead of && to chain commands in PowerShell. View differences without paging: git --no-pager diff
+Always use a semicolon ; instead of && to chain commands in PowerShell. View differences without paging: git --no-pager diff. Make always git add .
