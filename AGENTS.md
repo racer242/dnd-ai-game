@@ -2200,6 +2200,19 @@ Mark them as "not completed".
 
 **Just start game.**
 
+#### STEP 6.5: Launch music player
+
+Before beginning the narration, launch the music player (see 5.8 Music Accompaniment for details):
+
+1. **Launch the music player with the campaign theme:**
+   ```
+   python yandex_playlist_player.py --playlist "DnD - Theme"
+   ```
+2. The player starts playing the theme and **keeps running in the background**, waiting for further commands via `.command_queue` file
+3. Save current playlist in session state file
+
+**Important:** The player runs independently. You continue with opening narration while music plays in the background.
+
 #### STEP 7: Opening narration
 
 **You write:**
@@ -2692,13 +2705,14 @@ You manage background music through the `yandex_remote.py` script. Music creates
 
 #### Algorithm at session start
 
-1. **ALWAYS launch the main campaign theme first:**
+1. **ALWAYS launch the music player with the main campaign theme first:**
    ```
-   python yandex_remote.py --playlist "DnD - Theme"
+   python yandex_playlist_player.py --playlist "DnD - Theme"
    ```
-2. The theme plays during opening narration and initial scene setup
-3. After the scene stabilizes, assess the situation and switch to appropriate playlist if needed
-4. Save current playlist in session state file
+2. The player starts playing the theme and **keeps running in the background**, waiting for further commands via `.command_queue` file
+3. The theme plays during opening narration and initial scene setup
+4. After the scene stabilizes, assess the situation and switch to appropriate playlist if needed
+5. Save current playlist in session state file
 
 #### Algorithm on each turn
 
@@ -2960,6 +2974,14 @@ WORLD CONSEQUENCES:
 
 ═══════════════════════════════════
 Will continue in next session.
+```
+
+**STEP 1.5: Stop music player**
+
+Before summarizing, stop the music player:
+
+```
+python yandex_remote.py --stop
 ```
 
 **STEP 2: Save state**
