@@ -19,6 +19,7 @@ import argparse
 import time
 import re
 import threading
+import yaml
 from typing import List, Optional, Callable
 
 from dotenv import load_dotenv
@@ -35,8 +36,36 @@ load_dotenv()
 # ──────────────────────────────────────────────
 TOKEN = os.getenv("YANDEX_MUSIC_TOKEN", "")
 
-# Путь к mpv (Windows). На Linux/macOS обычно просто "mpv".
-MPV_PATH = r"C:\Program Files\MPV Player\mpv.exe"
+# Путь к текущему скрипту (для определения директории проекта)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_music_config() -> dict:
+    """Загружает конфигурацию из yandex_music_config.yaml."""
+    config_path = os.path.join(SCRIPT_DIR, "yandex_music_config.yaml")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+        return config or {}
+    except FileNotFoundError:
+        print("⚠️  yandex_music_config.yaml не найден. Используются настройки по умолчанию.")
+        return {
+            "player_path": r"C:\Program Files\MPV Player\mpv.exe",
+            "volume": "+0dB",
+        }
+    except Exception as e:
+        print(f"⚠️  Ошибка загрузки конфигурации: {e}")
+        return {}
+
+
+# Загружаем конфигурацию
+_music_config = load_music_config()
+
+# Путь к mpv (из конфига или значение по умолчанию)
+MPV_PATH = _music_config.get("player_path", r"C:\Program Files\MPV Player\mpv.exe")
+
+# Громкость (из конфига или значение по умолчанию)
+MUSIC_VOLUME = _music_config.get("volume", "+0dB")
 
 # ──────────────────────────────────────────────
 # Глобальный флаг для выхода из воспроизведения
@@ -189,7 +218,7 @@ def play_track(url: str, track_title: str, artist_name: str):
     print(f"  ▶ Сейчас играет: {artist_name} — {track_title}")
     try:
         subprocess.Popen(
-            [MPV_PATH, "--no-terminal", "--quiet", url],
+            [MPV_PATH, "--no-terminal", "--quiet", f"--volume={MUSIC_VOLUME}", url],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
