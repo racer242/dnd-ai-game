@@ -329,6 +329,9 @@ def play_tracks(tracks_source, client: Client):
                 stop_playback()
                 continue
 
+    # После завершения плейлиста — не завершаемся, ждём новых команд
+    idle_wait_for_commands(client)
+
 
 def _wait_for_track_or_command() -> Optional[str]:
     """Ждёт завершения трека или появления команды. Возвращает команду или None."""
@@ -400,6 +403,21 @@ def _handle_remote_command(cmd: str, client: Client):
     
     else:
         print(f"  ⚠️  Неизвестная команда: {cmd}")
+
+
+def idle_wait_for_commands(client: Client):
+    """Режим ожидания новых команд после завершения плейлиста.
+    Плеер остаётся в памяти и ждёт файл команды, не проигрывая ничего."""
+    print(f"\n{'='*60}")
+    print("  ✅ Воспроизведение завершено. Ожидание новых команд...")
+    print('  ➤ Используй: python yandex_remote.py --playlist "название"')
+    print("  ➤ Для выхода: python yandex_remote.py --stop")
+    print(f"{'='*60}")
+    while not _exit_requested:
+        cmd = check_command_file()
+        if cmd:
+            _handle_remote_command(cmd, client)
+        time.sleep(1)
 
 
 def find_station_id_by_query(query: str, client: Client) -> str:
