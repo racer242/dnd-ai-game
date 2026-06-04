@@ -3556,10 +3556,26 @@ $$$ Я отредактировал файл персонажа
 
 **Gameplay:**
 
-- "$$$ Start game session"
-- "$$$ Start next session"
-- "$$$ Continuing"
-- "$$$ Ending for today"
+- "$$$ Начни игровую сессию"
+- "$$$ Начни следующую сессию"
+- "$$$ Продолжаем"
+- "$$$ Заканчиваем на сегодня"
+
+**⚠️ IMPORTANT: On commands "$$$ Начни игровую сессию", "$$$ Начни следующую сессию", "$$$ Продолжаем" you MUST:**
+
+1. **Launch music player:**
+
+   ```
+   python yandex_playlist_player.py --playlist "DnD - Theme"
+   ```
+
+2. **Launch TTS player:**
+
+   ```
+   python tts_player.py --start
+   ```
+
+3. **Only after launching both players** start narration
 
 **Management:**
 
