@@ -31,6 +31,12 @@ build/
 test_*.py
 explore_*.py
 
+# TTS temporary audio files
+temp_tts/
+
+# TTS temporary text input
+.tts_text_input
+
 # Environment variables / secrets
 .env
 .env.local

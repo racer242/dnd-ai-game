@@ -1,0 +1,23 @@
+# TTS Configuration for D&D Master Voice Output
+# edge-tts voice IDs: https://github.com/ranyaru/edge-tts-voice-list
+
+# Master's voice (Russian)
+# Options: ru-RU-DmitryNeural, ru-RU-SvetlanaNeural, ru-RU-DariyaNeural
+# master_voice: "ru-RU-DmitryNeural"
+master_voice: "en-US-AndrewMultilingualNeural"
+
+# Output directory for temporary audio files
+output_dir: "temp_tts/"
+
+# Path to mpv player (Windows)
+# On Linux/macOS use just "mpv"
+player_path: "C:\\Program Files\\MPV Player\\mpv.exe"
+
+# Speech rate (+50% faster than default for better pacing)
+rate: "+10%"
+
+# Volume adjustment
+volume: "+20%"
+
+# Pitch adjustment
+pitch: "+0Hz"

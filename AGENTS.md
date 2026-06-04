@@ -2200,18 +2200,31 @@ Mark them as "not completed".
 
 **Just start game.**
 
-#### STEP 6.5: Launch music player
+#### ⚠️ STEP 6.5: LAUNCH MUSIC PLAYER (MANDATORY!)
 
-Before beginning the narration, launch the music player (see 5.8 Music Accompaniment for details):
+**CRITICALLY IMPORTANT: Before beginning narration you MUST launch the music player!**
 
-1. **Launch the music player with the campaign theme:**
+1. **LAUNCH the music player with campaign theme:**
    ```
    python yandex_playlist_player.py --playlist "DnD - Theme"
    ```
 2. The player starts playing the theme and **keeps running in the background**, waiting for further commands via `.command_queue` file
 3. Save current playlist in session state file
 
-**Important:** The player runs independently. You continue with opening narration while music plays in the background.
+**⛔ SESSION CANNOT START WITHOUT MUSIC!** Music is mandatory for atmosphere.
+
+#### ⚠️ STEP 6.6: LAUNCH TTS VOICE PLAYER (MANDATORY!)
+
+**CRITICALLY IMPORTANT: Before beginning narration you MUST launch the TTS voice player!**
+
+1. **LAUNCH the TTS player:**
+   ```
+   python tts_player.py --start
+   ```
+2. The player starts and **keeps running in the background**, waiting for commands via `.tts_command_queue` file
+3. TTS player works independently from music player — they don't conflict
+
+**⛔ SESSION CANNOT START WITHOUT VOICE OUTPUT!** Master's voice is mandatory for immersion.
 
 #### STEP 7: Opening narration
 
@@ -2714,27 +2727,29 @@ You manage background music through the `yandex_remote.py` script. Music creates
 4. After the scene stabilizes, assess the situation and switch to appropriate playlist if needed
 5. Save current playlist in session state file
 
-#### Algorithm on each turn
+#### ⚠️ Algorithm on each turn (CHANGE MUSIC WHEN MOOD CHANGES!)
 
-After describing the result of a player's action:
+**CRITICALLY IMPORTANT: After EVERY player action result description you MUST assess the situation and change music if mood has changed!**
 
-1. **Assess the situation:**
-   - Did the location change?
-   - Did the mood shift (combat → rest, exploration → tension)?
-   - Did new threats, events, or NPCs appear?
-   - Did a significant plot event occur?
+1. **ALWAYS assess after each turn:**
+   - ⚠️ Did the location change?
+   - ⚠️ Did the mood shift (combat → rest, exploration → tension)?
+   - ⚠️ Did new threats, events, or NPCs appear?
+   - ⚠️ Did a significant plot event occur?
 
-2. **If the situation changed** — determine the suitable playlist from the table below
+2. **⛔ IF SITUATION CHANGED — YOU MUST CHANGE PLAYLIST!**
 
-3. **Send the command:**
+   Send the command:
 
    ```
    python yandex_remote.py --playlist "DnD - [name]"
    ```
 
-4. **Update state** of current playlist in session file
+3. **Update state** of current playlist in session file
 
-5. **If situation unchanged** — don't touch the music
+4. **If situation unchanged** — don't touch the music
+
+**⛔ FORBIDDEN to leave inappropriate music! If combat started — SWITCH to combat music. If characters entered tavern — SWITCH to tavern music!**
 
 #### Situation-to-Playlist Mapping Table
 
@@ -2815,6 +2830,136 @@ Scene: city struck by plague, streets full of bodies
 → Assessment: catastrophe, plague, tragedy
 → Change: launch "DnD - Tragedy"
 → Command: python yandex_remote.py --playlist "DnD - Tragedy"
+```
+
+---
+
+### 5.9 TTS Voice Output for Master Narration
+
+#### How it works
+
+You manage voice narration of the Master's text through `tts_player.py` (TTS player launcher) and `tts_remote.py` (sending text for voice synthesis). The voice adds immersion and plays in parallel with text output in chat.
+
+**Important:** voice output does NOT block text display. Text appears immediately, voice plays in background. Only the Master's text is voiced, not player actions.
+
+#### Required dependencies
+
+Before use, install edge-tts:
+
+```
+pip install edge-tts
+```
+
+Also requires mpv player installed (same as for music).
+
+#### Algorithm at session start
+
+1. **Launch TTS player before beginning narration:**
+   ```
+   python tts_player.py --start
+   ```
+2. The player starts and **keeps running in the background**, waiting for commands via `.tts_command_queue` file
+3. TTS player works independently from music player — they don't conflict
+4. Save TTS player state in session state file
+
+#### ⚠️ Algorithm on each turn (VOICE THE FULL TEXT!)
+
+**CRITICALLY IMPORTANT: Before describing situation/action result you MUST send THE ENTIRE Master description text for voice synthesis!**
+
+1. **⛔ VOICE THE FULL DESCRIPTION text!**
+
+   Do NOT cut the text! Do NOT voice only the first paragraph! The entire text must be sent for voice synthesis!
+
+2. **Send the ENTIRE text for voice synthesis:**
+
+   ```
+   python tts_remote.py --text "FULL description text here..."
+   ```
+
+   **The system will automatically split long text into parts and play them sequentially!**
+
+3. **Immediately output text to chat** — don't wait for generation or playback to finish
+
+4. **Prompt player for action** — player sees text and can act even if voice is still playing
+
+5. **If player acts before voice finishes** — new voice output automatically interrupts previous one
+
+#### Important rules
+
+- **⛔ FORBIDDEN to cut the text!** Send the entire description text for voice synthesis!
+- **Voice does NOT block gameplay.** Text appears in chat immediately.
+- **Each new voice output interrupts the previous one.** No need to wait for completion.
+- **Voice only the Master's text.** Player actions and dialogue are not voiced.
+- **Use the same mpv player** as for music. They run in parallel.
+- **On generation error** — continue game without voice, don't draw attention.
+- **Voice settings** are configured in `tts_config.yaml`. Can change voice, speed, pitch.
+
+#### Working examples
+
+**Example 1: Opening scene description**
+
+```
+# Send for voice synthesis
+python tts_remote.py --text "You enter the dark tavern. The air is stuffy, smelling of ale and sweat."
+
+# Immediately output text to chat
+═══════════════════════════════════
+SESSION 1 STARTED
+═══════════════════════════════════
+
+You enter the dark tavern. The air is stuffy, smelling of ale and sweat.
+Behind the counter, the bartender wipes mugs. Two men play dice in the corner.
+
+Thorin, what do you do?
+```
+
+**Example 2: Action result**
+
+```
+# Send for voice synthesis
+python tts_remote.py --text "You notice a hidden door behind the bookshelf."
+
+# Immediately output text
+Thorin carefully examines the library walls.
+
+(Investigation check: 16 vs DC 14 — success)
+
+You notice a hidden door behind the bookshelf. The opening mechanism is concealed in one of the books.
+
+What do you do?
+```
+
+**Example 3: Interrupting previous voice**
+
+```
+# Player acts quickly, new voice interrupts old
+python tts_remote.py --text "The bandit falls dead."
+# Previous voice automatically stops
+```
+
+#### Voice configuration
+
+File `tts_config.yaml` contains settings:
+
+```yaml
+master_voice: "ru-RU-DmitryNeural" # Master's voice
+rate: "+50%" # Speech rate
+volume: "+0%" # Volume
+pitch: "+0Hz" # Pitch
+```
+
+Available Russian voices:
+
+- `ru-RU-DmitryNeural` — male
+- `ru-RU-SvetlanaNeural` — female
+- `ru-RU-DariyaNeural` — female
+
+#### Session end
+
+When ending session, stop TTS player:
+
+```
+python tts_player.py --stop
 ```
 
 ---
