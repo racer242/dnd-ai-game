@@ -2888,23 +2888,39 @@ Also requires mpv player installed (same as for music).
 
    Text that is NOT Master narration (system messages, questions to player, technical instructions) — output as a separate block AFTER the main text.
 
-**Example of correct order:**
+**Example of correct order (MULTI-PARAGRAPH text):**
 
 ```
-# STEP 1: Send ALL Master text for voice
-python tts_remote.py --text "You enter the dark tavern. The air is stuffy, smelling of ale and sweat. Behind the counter, the bartender wipes mugs. Two men play dice in the corner."
+# STEP 1: Collect ALL narration text (ALL paragraphs!)
+# Text includes: action result + environment description + world reaction + NPC speech
 
-# STEP 2: Output the same text to chat
+FULL_TEXT = """You decide to make camp. Garrett nods and starts gathering dry branches.
+
+After a few minutes, a small fire crackles in the center of the camp. Warm light illuminates the travelers' faces, pushing back the night darkness. In the distance, wolves howl.
+
+Garrett sits by the fire and says: "This night will be long. We need to stay alert."
+
+The fire's warmth pleasantly warms your hands after the cold wind."""
+
+# STEP 2: Send ENTIRE text in ONE call (all paragraphs together!)
+python tts_remote.py --text "You decide to make camp. Garrett nods and starts gathering dry branches. After a few minutes, a small fire crackles in the center of the camp. Warm light illuminates the travelers' faces, pushing back the night darkness. In the distance, wolves howl. Garrett sits by the fire and says: This night will be long. We need to stay alert. The fire's warmth pleasantly warms your hands after the cold wind."
+
+# STEP 3: Output the SAME FULL text to chat
 ═══════════════════════════════════
-SESSION 1 STARTED
-═══════════════════════════════════
 
-You enter the dark tavern. The air is stuffy, smelling of ale and sweat.
-Behind the counter, the bartender wipes mugs. Two men play dice in the corner.
+You decide to make camp. Garrett nods and starts gathering dry branches.
 
-# STEP 3: Output NON-voiced text (question to player)
-Thorin, what do you do?
+After a few minutes, a small fire crackles in the center of the camp. Warm light illuminates the travelers' faces, pushing back the night darkness. In the distance, wolves howl.
+
+Garrett sits by the fire and says: "This night will be long. We need to stay alert."
+
+The fire's warmth pleasantly warms your hands after the cold wind.
+
+# STEP 4: Output NON-voiced text (question to player)
+Garrett, what do you do next?
 ```
+
+**⛔ CRITICALLY IMPORTANT: If description contains multiple paragraphs — you MUST send them ALL in ONE tts_remote.py call! Do NOT make separate calls for each paragraph!**
 
 **⛔ FORBIDDEN:**
 

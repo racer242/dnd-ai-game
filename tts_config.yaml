@@ -17,7 +17,7 @@ player_path: "C:\\Program Files\\MPV Player\\mpv.exe"
 rate: "+10%"
 
 # Volume adjustment
-volume: "+20%"
+volume: "+80%"
 
 # Pitch adjustment
 pitch: "+0Hz"
