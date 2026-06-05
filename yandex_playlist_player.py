@@ -364,6 +364,7 @@ def play_liked_tracks():
 
 def play_tracks(tracks_source, client: Client):
     """Запускает зацикленное воспроизведение треков в перемешанном порядке."""
+    global _skip_requested, _exit_requested
     import random
 
     if hasattr(tracks_source, 'tracks'):
