@@ -4,7 +4,8 @@
 # Master's voice (Russian)
 # Options: ru-RU-DmitryNeural, ru-RU-SvetlanaNeural, ru-RU-DariyaNeural
 # master_voice: "ru-RU-DmitryNeural"
-master_voice: "en-US-AndrewMultilingualNeural"
+# master_voice: "en-US-AndrewMultilingualNeural"
+master_voice: "en-US-BrianMultilingualNeural"
 
 # Output directory for temporary audio files
 output_dir: "temp_tts/"

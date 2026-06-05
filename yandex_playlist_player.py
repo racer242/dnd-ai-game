@@ -205,6 +205,39 @@ def get_track_url(track, client: Client) -> Optional[str]:
 _TEMP_AUDIO_DIR = os.path.join(SCRIPT_DIR, "temp_music")
 os.makedirs(_TEMP_AUDIO_DIR, exist_ok=True)
 
+# Словарь транслитерации кириллицы
+_CYRILLIC_TRANS = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
+    'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+    'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+    'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
+    'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+}
+
+
+def sanitize_filename(name: str) -> str:
+    """Очищает имя файла от недопустимых символов и переводит кириллицу в транслит."""
+    import re
+    
+    # Транслитерация кириллицы
+    result = ''.join(_CYRILLIC_TRANS.get(c, c) for c in name)
+    
+    # Замена недопустимых символов Windows (\ / : * ? " < > |) на подчёркивания
+    result = re.sub(r'[\\/:*?"<>|]', '_', result)
+    
+    # Схлопываем множественные подчёркивания
+    result = re.sub(r'_+', '_', result)
+    
+    # Убираем пробелы и точки в начале/конце
+    result = result.strip('. ')
+    
+    return result
+
 
 def download_and_play(track, track_title: str, artist_name: str, client: Client):
     """Скачивает трек во временный файл (если нужно) и воспроизводит его."""
@@ -213,8 +246,9 @@ def download_and_play(track, track_title: str, artist_name: str, client: Client)
     print(f"  ▶ Сейчас играет: {artist_name} — {track_title}")
     
     try:
-        # Проверяем кэш - если трек уже скачан, используем его
-        temp_file = os.path.join(_TEMP_AUDIO_DIR, f"{track_title.replace('/', '_')}.mp3")
+        # Генерируем безопасное имя файла (транслит + очистка от спецсимволов)
+        safe_name = sanitize_filename(f"{artist_name} - {track_title}")
+        temp_file = os.path.join(_TEMP_AUDIO_DIR, f"{safe_name}.mp3")
         
         if os.path.exists(temp_file) and os.path.getsize(temp_file) > 0:
             # Трек уже в кэше
