@@ -227,8 +227,9 @@ def sanitize_filename(name: str) -> str:
     # Транслитерация кириллицы
     result = ''.join(_CYRILLIC_TRANS.get(c, c) for c in name)
     
-    # Замена недопустимых символов Windows (\ / : * ? " < > |) на подчёркивания
-    result = re.sub(r'[\\/:*?"<>|]', '_', result)
+    # Замена всех символов, кроме разрешённых (ASCII буквы, цифры, дефис, подчёркивание, точка, пробел)
+    # Оставляем: a-z, A-Z, 0-9, -, _, ., пробел
+    result = re.sub(r'[^a-zA-Z0-9\-_.\s]', '_', result)
     
     # Схлопываем множественные подчёркивания
     result = re.sub(r'_+', '_', result)
