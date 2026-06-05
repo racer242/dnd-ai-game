@@ -414,10 +414,16 @@ def play_tracks(tracks_source, client: Client):
 
         print(f"  └ Ожидание завершения (Ctrl+N — пропустить, Ctrl+X — выйти)...")
         cmd = _wait_for_track_or_command()
+        
+        # Проверяем флаг пропуска ещё раз (на случай если он был установлен во время ожидания)
+        if _skip_requested or cmd == "__skip__":
+            _skip_requested = False
+            stop_playback()
+            idx += 1
+            continue
+        
         if _exit_requested:
             break
-        if _skip_requested:
-            _skip_requested = False
         
         if cmd:
             # Получена команда из файла — обрабатываем
@@ -440,8 +446,14 @@ def play_tracks(tracks_source, client: Client):
 
 
 def _wait_for_track_or_command() -> Optional[str]:
-    """Ждёт завершения трека или появления команды. Возвращает команду или None."""
+    """Ждёт завершения трека или появления команды/пропуска. Возвращает команду или None."""
+    global _skip_requested
     while True:
+        # Проверяем флаг пропуска
+        if _skip_requested:
+            _skip_requested = False
+            return "__skip__"  # Специальная команда для пропуска
+        
         cmd = check_command_file()
         if cmd:
             return cmd
