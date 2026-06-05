@@ -99,21 +99,29 @@ def check_command_file() -> Optional[str]:
     return None
 
 
+# Глобальный флаг для пропуска текущего трека
+_skip_requested = False
+
+
 def start_keyboard_listener(on_exit: Callable):
-    """Запускает фоновый поток, слушающий Ctrl+X для выхода."""
+    """Запускает фоновый поток, слушающий Ctrl+X для выхода, Ctrl+N для пропуска."""
     def _listener():
-        global _exit_requested
+        global _exit_requested, _skip_requested
         if sys.platform == "win32":
             import msvcrt
             while not _exit_requested:
                 if msvcrt.kbhit():
                     key = msvcrt.getch()
-                    # Ctrl+X = 24 (0x18)
+                    # Ctrl+X = 24 (0x18) — выход
                     if key == b'\x18':
                         _exit_requested = True
                         print("\n\n⏹ Выход...")
                         on_exit()
                         break
+                    # Ctrl+N = 14 (0x0E) — пропуск трека
+                    elif key == b'\x0e':
+                        _skip_requested = True
+                        print("\n  ⏭ Пропускаю трек (Ctrl+N)...")
                 time.sleep(0.1)
         else:
             import termios
@@ -127,12 +135,16 @@ def start_keyboard_listener(on_exit: Callable):
                     r, _, _ = select.select([sys.stdin], [], [], 0.1)
                     if r:
                         key = sys.stdin.read(1)
-                        # Ctrl+X = 24 = 0x18
+                        # Ctrl+X = 24 = 0x18 — выход
                         if key == '\x18':
                             _exit_requested = True
                             print("\n\n⏹ Выход...")
                             on_exit()
                             break
+                        # Ctrl+N = 14 = 0x0E — пропуск трека
+                        elif key == '\x0e':
+                            _skip_requested = True
+                            print("\n  ⏭ Пропускаю трек (Ctrl+N)...")
             finally:
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
@@ -351,7 +363,7 @@ def play_liked_tracks():
 
 
 def play_tracks(tracks_source, client: Client):
-    """Запускает последовательное воспроизведение треков из плейлиста (в перемешанном порядке)."""
+    """Запускает зацикленное воспроизведение треков в перемешанном порядке."""
     import random
 
     if hasattr(tracks_source, 'tracks'):
@@ -359,33 +371,40 @@ def play_tracks(tracks_source, client: Client):
     else:
         tracks_data = tracks_source
 
-    # Перемешиваем треки для режима shuffle
-    random.shuffle(tracks_data)
-
-    total = len(tracks_data)
+    # Будем использовать копию для перемешивания
+    current_order = list(tracks_data)
+    random.shuffle(current_order)
+    
+    total = len(current_order)
     print(f"\n{'='*60}")
-    print(f"  Начинаю воспроизведение {total} треков (в перемешанном порядке)")
+    print(f"  Начинаю зацикленное воспроизведение {total} треков (в перемешанном порядке)")
     print(f"{'='*60}\n")
 
-    for idx, track_data in enumerate(tracks_data, 1):
+    idx = 0
+    while not _exit_requested:
+        track_data = current_order[idx % total]
+        current_num = (idx % total) + 1
+        
         try:
             if hasattr(track_data, 'fetch_track'):
                 track = track_data.fetch_track()
             else:
                 track = track_data.track
         except Exception as e:
-            print(f"  [{idx}/{total}] ⚠️  Не удалось загрузить трек: {e}")
+            print(f"  [{current_num}/{total}] ⚠️  Не удалось загрузить трек: {e}")
+            idx += 1
             continue
 
         if not track:
-            print(f"  [{idx}/{total}] ⚠️  Трек недоступен")
+            print(f"  [{current_num}/{total}] ⚠️  Трек недоступен")
+            idx += 1
             continue
 
         title = getattr(track, 'title', 'Unknown')
         artists = track.artists if hasattr(track, 'artists') else []
         artist_str = ", ".join(a.name for a in artists) if artists else "Unknown"
 
-        print(f"[{idx}/{total}] {artist_str} — {title}")
+        print(f"[{current_num}/{total}] {artist_str} — {title}")
         print(f"  └ Загрузка информации...")
 
         stop_playback()
@@ -393,24 +412,31 @@ def play_tracks(tracks_source, client: Client):
 
         download_and_play(track, title, artist_str, client)
 
-        if idx < total:
-            print(f"  └ Ожидание завершения трека (Ctrl+C — пропустить)...")
-            cmd = _wait_for_track_or_command()
-            if cmd:
-                # Получена команда из файла — обрабатываем
-                _handle_remote_command(cmd, client)
-                if _exit_requested:
-                    break
-                continue
-            try:
-                pass  # Цикл уже завершился (трек доиграл)
-            except KeyboardInterrupt:
-                print("\n  ⏭ Пропускаю трек...")
-                stop_playback()
-                continue
+        print(f"  └ Ожидание завершения (Ctrl+N — пропустить, Ctrl+X — выйти)...")
+        cmd = _wait_for_track_or_command()
+        if _exit_requested:
+            break
+        if _skip_requested:
+            _skip_requested = False
+        
+        if cmd:
+            # Получена команда из файла — обрабатываем
+            _handle_remote_command(cmd, client)
+            if _exit_requested:
+                break
+            # После смены плейлиста пересоздаём порядок
+            if cmd.startswith("--playlist") or cmd.startswith("--wave") or cmd == "--liked":
+                return  # play_playlist_by_name/play_wave уже запустили свой цикл
+            continue
+        
+        # При переходе на новый цикл — перемешиваем заново
+        if (idx + 1) % total == 0:
+            print(f"\n  🔄 Цикл завершён. Начинаю новый проход...\n")
+            random.shuffle(current_order)
+        
+        idx += 1
 
-    # После завершения плейлиста — не завершаемся, ждём новых команд
-    idle_wait_for_commands(client)
+    print("  └ Воспроизведение остановлено.")
 
 
 def _wait_for_track_or_command() -> Optional[str]:
@@ -703,8 +729,12 @@ def play_wave(query: Optional[str] = None):
 
                 download_and_play(track, title, artist_str, client)
 
-                print(f"  └ Ожидание завершения (Ctrl+C — пропустить, Ctrl+X — выйти)...")
+                print(f"  └ Ожидание завершения (Ctrl+N — пропустить, Ctrl+X — выйти)...")
                 cmd = _wait_for_wave_command()
+                if _exit_requested:
+                    break
+                if _skip_requested:
+                    _skip_requested = False
                 if cmd:
                     # Получена команду из файла — обрабатываем
                     _handle_remote_command(cmd, client)
